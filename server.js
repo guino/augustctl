@@ -3,8 +3,6 @@
 var augustctl = require('./index');
 var express = require('express');
 var morgan = require('morgan');
-var await = require('asyncawait/await');
-var async = require('asyncawait/async');
 var config = require(process.env.AUGUSTCTL_CONFIG || './config.json');
 var DEBUG = process.env.NODE_ENV !== 'production';
 var address = config.address || 'localhost';
@@ -47,7 +45,7 @@ app.get('/api/unlock', function(req, res) {
 			else
 			{
 				ret['status'] = 1;
-				ret['msg'] = 'Lock is already locked';
+				ret['msg'] = 'Lock is already unlocked';
 				res.json(ret);
 				
 				lock.disconnect();
@@ -134,6 +132,43 @@ app.get('/api/status', function(req, res){
 
 });
 
+app.get('/api/neverlock', function(req, res) {
+
+  var lock = app.get('lock');
+
+  if (!lock) {
+    res.sendStatus(503);
+    return;
+  }
+
+  lock.connect().then(function(){
+	lock.everlockOff().then(function(response){
+		ret['msg'] = 'Auto-lock disabled.';
+		res.json(ret);
+		lock.disconnect();
+	});
+  });
+
+});
+
+app.get('/api/autolock', function(req, res) {
+
+  var lock = app.get('lock');
+
+  if (!lock) {
+    res.sendStatus(503);
+    return;
+  }
+
+  lock.connect().then(function(){
+	lock.everlockOn(60).then(function(response){
+		ret['msg'] = 'Auto-lock enabled.';
+		res.json(ret);
+		lock.disconnect();
+	});
+  });
+
+});
 
 augustctl.scan(config.lockUuid).then(function(peripheral) {
   var lock = new augustctl.Lock(
